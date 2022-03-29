@@ -1,0 +1,108 @@
+---
+title: "Introducing tidyrを読んでみた"
+output: html_document
+---
+Introducing tidyrより。
+http://blog.rstudio.org/2014/07/22/introducing-tidyr/
+
+
+
+データの取り回しの話である。
+ここでいうTidyな形式というのは
+
+1. 列は変数(variables)を意味する
+2. 行は観察物(observations)を意味する
+
+で、集計したり、可視化したり、モデルを作ったりしやすいデータ形式のことらしい。
+
+ぐちゃぐちゃなデータをtidyにするには、まず変数を見つけて、
+次にtidyrを使って変数を列ごとにまとめる。
+このために、tidyrには次の3つの関数がある。
+
+* gather()
+* separate()
+* spread()
+
+それぞれ見ていく。
+
+### gather()
+
+gather()は複数の列を取って、変数名−値の対応関係にまとめる関数である。
+他のライブラリだとmelt(reshape2)とかpivot(spreadsheets)と呼ばれているらしい。
+(SpreadseetsってExcelのあの機能か?)
+"横長の表を縦長にする関数"と説明されているが、実例を見たほうが早い。
+
+```{r}
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+```
+3名の患者と薬、脈拍数の表を例にする。
+
+```{r}
+messy <- data.frame(
+  name = c("hoge","huga","piyo"),
+  a = c(98,100,120),
+  b = c(55,60,59)
+)
+
+messy
+```
+実際、こういう表はよく見る。これをtidyにしよう。
+
+この例では3つの変数が出てきている(name、drug a.b、HR)のだが、
+表の中に出てきているのは名前だけである。
+つまり、nameという変数に対して名前(値)が表示されているのはnameだけで、
+他の列はdrug a.b(値)に対してHR(値)が表示されている。
+
+ここでgather()を使って変数名−値の対応関係になおす。
+```{r}
+messy %>% gather(drug, heartrate, a:b)
+```
+これでtidyになった。
+
+### separate()
+ときどき、2つの変数がひとつの列にまとめられていることがある。
+たとえばこんなの。
+```{r}
+set.seed(10)
+messy <- data.frame(
+  id = 1:4,
+  trt = sample(rep(c('control','treatment'), each = 2)),
+   work.T1 = runif(4),
+   home.T1 = runif(4),
+   work.T2 = runif(4),
+   home.T2 = runif(4)
+  )
+messy
+```
+こういうのをtidyにするには、まずgather()を使ってwork.T1, home.T1, work.T2,home.T2を
+変数名-値の関係に直す。
+
+```{r}
+tidier <- messy %>% 
+    gather(key, time, -id, -trt)
+
+tidier %>% head(8)
+
+```
+
+次にseparate()を使って変数名を場所と時間とに分ける。
+正規表現を使って区切り文字を指定する。
+
+```{r}
+tidy <- tidier %>% 
+  separate(key, into = c("location","time"))
+tidy %>% head(8)
+```
+
+
+
+
+##　チートシート
+
+この話を手っ取り早くまとめたチートシートが存在している。
+こんな感じ。
+
+* https://www.rstudio.com/resources/cheatsheets/
+* https://www.rstudio.com/wp-content/uploads/2015/09/data-wrangling-japanese.pdf
