@@ -1,0 +1,56 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(tinter)
+#単色のカラーパレットを作成:tinerコマンド
+#基本色を指定:xオプション
+#基本色を軸に作成する色数:stepsオプション
+#明暗の作成方向:directionオプション;明:tints,暗:shades,両方:both
+TinCol <- tinter(x = "blue", steps = 5, direction = "both")
+#表示
+scales::show_col(TinCol, labels = TRUE, borders = "#a87963")
+```
+
+```{r}
+library(gganimate)
+
+###データ例の作成#####
+set.seed(1234)
+n <- 300
+TestData <- data.frame(Year = sample(paste0(2021:2022), n, replace = TRUE),
+                       Group = sample(paste0("Group", 1:3), n, replace = TRUE),
+                       Data1 = runif(n) + sample(1:10, n, replace = TRUE),
+                       Data2 = runif(n) * runif(n))
+########
+ 
+#アニメーション化するggplotオブジェクトを作成:transition_statesコマンド
+#アニメーションの長さを設定:transition_lengthオプション
+#アニメーション間の長さを設定:state_lengthオプション
+TestPlot_1 <- ggplot(TestData, aes(x = Data1, y = Data2,
+                     size = Data1, color = Group)) +
+  geom_point() +
+  guides(size = "none") +
+  transition_states(states = Year,
+                    transition_length = 2,
+                    state_length = 1)
+#表示
+TestPlot_1
+
+```
+
+```{r}
+TestPlot2 <- ggplot(data2, aes(x=day,y=Snow_depth,color=month)) +
+  geom_point() +
+  ggtitle("現在の表示は {closest_state} 年です。",
+          subtitle = "Frame {frame} of {nframes}") +
+  transition_states(states = year,
+                    transition_length = 2,
+                    state_length = 1)
+
+TestPlot2
+
+```

@@ -1,0 +1,21 @@
+---
+title: "igraph"
+output: html_document
+---
+
+```{r}
+library("igraph")
+d <- as.matrix(read.table("./edgemetrix",header=T, row.names=1))
+g <- graph.adjacency(d,mode="directed",weighted=T)
+```
+
+```{r}
+plot(g,vertex.size=10*betweenness(g))
+```
+
+```{r}
+d2 <- as.matrix(read.table("./edgematrix2",header=T,row.names=1))
+g2 <- graph.adjacency(d2,mode="undirected",weighted=NULL)
+plot(g2)
+```
+

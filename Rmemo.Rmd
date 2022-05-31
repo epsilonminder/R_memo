@@ -1,0 +1,267 @@
+---
+title: "R memo"
+output: html_document
+---
+
+# グラフ編
+
+## ベンチマーク
+
+```{r}
+before <- proc.time()
+d1 <- lapply(1:10000000, function(i){
+  
+  x <- runif(10)
+  max(x) - min(x)
+  }
+  )
+after <- proc.time()
+
+after - before
+```
+
+## Dotplot
+
+```{r}
+library(tidyverse)
+
+g <- ggplot(iris, aes(x=Species, y=Petal.Width, fill=Species)) +
+      geom_dotplot(binaxis="y" , stackdir="center")
+
+plot(g)
+
+```
+
+
+## 検定の線
+```{r}
+library(ggsignif)
+g2 <- ggplot(InsectSprays, aes(x=spray, y=count)) +
+      geom_boxplot() +
+      geom_signif( test=t.test,
+                   comparisons = list( c("A","B")),
+                   map_signif_level = TRUE
+      ) +
+    geom_signif( test=t.test,
+                 comparisons = list(c("D","E")),
+                 map_signif_level = FALSE,
+                 y_position = 15,
+                 textsize = 10
+                 )
+                   
+plot(g2)
+
+```
+
+
+## グラフに特殊文字をつかう
+
+```{r}
+
+hoge <- data.frame(wt = factor(c(1:5)), mpg = 10*rnorm(5), 
+                   gear = factor(c("alpha","beta",'integral(x)*dx',"x^2","over(a,b)")))
+
+
+g3 <- ggplot(hoge,aes(x=wt, y=mpg)) +
+      geom_point() +
+      facet_wrap(~ gear,labeller=label_parsed) +  #Facetで使うとき
+  
+      ggtitle(expression(paste(alpha,beta,gamma,"123"))) +　#タイトルに使うとき
+      theme(plot.title = element_text(hjust=0.5)) +
+      annotate("text",x=3.5,y=10, label="alpha * ' function'",parse=TRUE) + #グラフ内にかくとき
+      xlab(expression(frac(1,sqrt(2*pi))*"  x label")) 　#軸ラベルに書くとき
+      
+      
+      
+      
+plot(g3)
+
+```
+
+## グループごとに線
+
+```{r}
+g4 <- ggplot(InsectSprays, aes(x=spray,y=count)) +
+        geom_boxplot()+
+  
+        ylim(-5,30) +
+        annotate("segment",x=1,xend=3,y=-5,yend=-5,size=2) +
+        annotate("text", x=2, y=-3, label="first",size=10) +
+        annotate("segment",x=4,xend=6,y=-5,yend=-5,size=2) +
+        annotate("text", x=5, y=-3, label="second",size=10) 
+
+plot(g4)
+
+```
+
+
+## 軸やタイトルの文字の大きさを変える
+
+```{r}
+g5 <- ggplot(iris, aes(x=Sepal.Length, y=Sepal.Width,color=Species)) +
+           geom_point() +
+           ggtitle("Iris graph") +
+           xlab("") + 
+
+           theme(text=element_text(size=20)) + #全体の大きさ
+           theme(plot.title=element_text(size=50)) +  #タイトルの大きさ
+           theme(axis.text.y = element_text(size=30)) + #軸の大きさ
+           theme(axis.text.y = element_text(angle=45, vjust=0.5)) #文字の回転
+
+plot(g5)
+```
+
+
+
+## ggplot
+
+ https://atusy.github.io/presentation/tokyor073/tokyor073-multi-ggplot2.html?raw#/vary-plot-types
+```{r}
+library(dplyr)
+minicars <- mtcars %>%
+          select(mpg,wt,hp,vs,am) %>%
+          mutate(
+            vs = c("v-shaped","straight")[vs +1],
+            am = c("Automatic","manual")[am +1]
+          )
+
+
+ggplot(data = minicars,
+       mapping = aes(
+         x = mpg,
+         fill = vs
+       )) +
+  geom_histogram() +
+  theme_classic()
+```
+
+```{r}
+ggplot(minicars, aes(x=wt,y=mpg,color=vs,shape=am)) + 
+  geom_point(size=5) 
+
+```
+
+
+```{r}
+
+longcars <- gather(minicars,var,val,-am,-vs,-mpg)
+
+ggplot(longcars, aes(x=val)) +
+  geom_histogram() +
+  facet_grid(vs ~ var,
+             scales="free_x",
+             switch="both") +
+  theme(strip.placement="outside") 
+
+```
+
+
+```{r}
+ggplot(longcars,aes(x=val,y=mpg,color=am,shape=vs)) +
+  geom_point(size=5) +
+  facet_wrap(~ var, scales="free", strip.position = 'bottom') +
+  theme(
+    strip.placement = 'outside',
+    strip.background = element_blank(),
+    strip.text.x = element_text(size=10),
+    axis.title.x = element_blank()
+  )
+
+
+```
+
+```{r}
+minicars2 <- minicars %>%
+  mutate(vs = paste0("(",letters[factor(vs)],") ",vs))
+
+ggplot(minicars2,aes(mpg)) +
+  geom_histogram() +
+  facet_wrap(~vs, ncol=1)
+
+```
+
+```{r}
+ggplot(minicars,aes(mpg, fill=vs)) +
+  geom_histogram() +
+  facet_grid(vs ~ . ,margins=TRUE)
+
+```
+
+
+```{r}
+minicars2 <- minicars %>%
+              mutate(facet = vs) %>%
+              bind_rows(mutate(., facet="All"))
+
+ggplot(minicars2, aes(mpg,fill=vs)) +
+  geom_histogram() +
+  facet_wrap(~ facet, strip.position = "right", ncol=1)
+
+```
+
+
+```{r}
+minicars %>% 
+  transmute(mpg, hist=1, dens = NA_integer_) %>% 
+  bind_rows(mutate(., hist= NA_integer_, dens=1)) %>%
+  mutate(facet=ifelse(!is.na(hist),"count","density")) %>%
+  ggplot(aes(x=mpg)) +
+    geom_histogram(aes(x=mpg*hist)) +
+    geom_density(aes(x=mpg*dens)) +
+    facet_wrap(~ facet,scales="free_y",strip.position = "left") +
+    theme(
+      axis.title.y = element_blank(),
+      strip.placement = "outside",
+       strip.background = element_blank(),
+      strip.text.y = element_text(size = 11)
+    )
+
+```
+
+```{r}
+# install.packages(devtools)
+# devtools::install_github('thomasp85/patchwork')
+library(patchwork)
+
+
+p1 <- ggplot(minicars) + geom_point(aes(wt,mpg)) + ggtitle("p1")
+p2 <- ggplot(minicars) + geom_point(aes(hp,mpg)) + ggtitle("p2")
+p3 <- ggplot(minicars) + geom_histogram(aes(wt)) + ggtitle("p3")
+p4 <- ggplot(minicars) + geom_histogram(aes(mpg)) + ggtitle("p4")
+
+(p1|p2) /p3 / p4
+```
+
+```{r}
+wrap_plots(p3|p2,p1/p3,p4/p1,p1|p2,
+           nrow=2, ncol=2, heights=c(2,3),widths=c(3,1))
+```
+
+# 検定など
+
+## One-way Anova + Tukey検定
+
+```{r}
+summary(aov(Petal.Width ~ Species, iris))
+TukeyHSD(aov(Petal.Width ~ Species, iris))
+
+```
+
+## Brunner-Munzel検定
+
+等分散性、正規性を仮定せず、分布が異なるときにも使えるノンパラメトリック検定
+
+```{r eval=FALSE}
+library(brunnermunzel)
+
+isetosa <- iris %>% filter(Species == "setosa")
+ivirginica <- iris %>% filter(Species == "virginica")
+
+brunnermunzel.test(isetosa$Sepal.Length, ivirginica$Sepal.Length)
+
+g <- ggplot(iris,aes(x=Species,y=Sepal.Length)) + 
+      geom_boxplot()
+      
+plot(g)
+
+```
